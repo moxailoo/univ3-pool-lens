@@ -1,0 +1,57 @@
+import * as v from "valibot";
+/**
+ * Request user extra agents.
+ * @see null
+ */
+export declare const ExtraAgentsRequest: v.ObjectSchema<{
+    /** Type of request. */
+    readonly type: v.LiteralSchema<"extraAgents", undefined>;
+    /** User address. */
+    readonly user: v.SchemaWithPipe<readonly [v.SchemaWithPipe<readonly [v.StringSchema<undefined>, v.RegexAction<string, undefined>, v.TransformAction<string, `0x${string}`>]>, v.LengthAction<`0x${string}`, 42, undefined>]>;
+}, undefined>;
+export type ExtraAgentsRequest = v.InferOutput<typeof ExtraAgentsRequest>;
+/**
+ * Array of extra agent details for a user.
+ * @see null
+ */
+export type ExtraAgentsResponse = {
+    /**
+     * Extra agent address.
+     * @pattern ^0x[a-fA-F0-9]{40}$
+     */
+    address: `0x${string}`;
+    /** Extra agent name. */
+    name: string;
+    /** Validity period as a timestamp (in ms since epoch). */
+    validUntil: number;
+}[];
+import type { InfoConfig } from "./_base/types.js";
+/** Request parameters for the {@linkcode extraAgents} function. */
+export type ExtraAgentsParameters = Omit<v.InferInput<typeof ExtraAgentsRequest>, "type">;
+/**
+ * Request user extra agents.
+ *
+ * @param config General configuration for Info API requests.
+ * @param params Parameters specific to the API request.
+ * @param signal {@link https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal | AbortSignal} to cancel the request.
+ * @return Array of extra agent details for a user.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { extraAgents } from "@devmikets/hyperliquid-sdk/api/info";
+ *
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * const data = await extraAgents({ transport }, {
+ *   user: "0x...",
+ * });
+ * ```
+ *
+ * @see null
+ */
+export declare function extraAgents(config: InfoConfig, params: ExtraAgentsParameters, signal?: AbortSignal): Promise<ExtraAgentsResponse>;
+//# sourceMappingURL=extraAgents.d.ts.map

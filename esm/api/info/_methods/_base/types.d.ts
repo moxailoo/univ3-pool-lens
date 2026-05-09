@@ -1,0 +1,11 @@
+/**
+ * Configuration types for the Info API.
+ * @module
+ */
+import type { IRequestTransport } from "../../../../transport/mod.js";
+/** Configuration for Info API requests. */
+export interface InfoConfig<T extends IRequestTransport = IRequestTransport> {
+    /** The transport used to connect to the Hyperliquid API. */
+    transport: T;
+}
+//# sourceMappingURL=types.d.ts.map

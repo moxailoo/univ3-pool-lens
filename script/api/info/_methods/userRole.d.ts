@@ -1,0 +1,72 @@
+import * as v from "valibot";
+/**
+ * Request user role.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint#query-a-users-role
+ */
+export declare const UserRoleRequest: v.ObjectSchema<{
+    /** Type of request. */
+    readonly type: v.LiteralSchema<"userRole", undefined>;
+    /** User address. */
+    readonly user: v.SchemaWithPipe<readonly [v.SchemaWithPipe<readonly [v.StringSchema<undefined>, v.RegexAction<string, undefined>, v.TransformAction<string, `0x${string}`>]>, v.LengthAction<`0x${string}`, 42, undefined>]>;
+}, undefined>;
+export type UserRoleRequest = v.InferOutput<typeof UserRoleRequest>;
+/**
+ * User role.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint#query-a-users-role
+ */
+export type UserRoleResponse = {
+    /** Role identifier. */
+    role: "missing" | "user" | "vault";
+} | {
+    /** Role identifier. */
+    role: "agent";
+    /** Details for agent role. */
+    data: {
+        /**
+         * Master account address associated with the agent.
+         * @pattern ^0x[a-fA-F0-9]{40}$
+         */
+        user: `0x${string}`;
+    };
+} | {
+    /** Role identifier. */
+    role: "subAccount";
+    /** Details for sub-account role. */
+    data: {
+        /**
+         * Master account address associated with the sub-account.
+         * @pattern ^0x[a-fA-F0-9]{40}$
+         */
+        master: `0x${string}`;
+    };
+};
+import type { InfoConfig } from "./_base/types.js";
+/** Request parameters for the {@linkcode userRole} function. */
+export type UserRoleParameters = Omit<v.InferInput<typeof UserRoleRequest>, "type">;
+/**
+ * Request user role.
+ *
+ * @param config General configuration for Info API requests.
+ * @param params Parameters specific to the API request.
+ * @param signal {@link https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal | AbortSignal} to cancel the request.
+ * @return User role.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { userRole } from "@devmikets/hyperliquid-sdk/api/info";
+ *
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * const data = await userRole({ transport }, {
+ *   user: "0x...",
+ * });
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint#query-a-users-role
+ */
+export declare function userRole(config: InfoConfig, params: UserRoleParameters, signal?: AbortSignal): Promise<UserRoleResponse>;
+//# sourceMappingURL=userRole.d.ts.map

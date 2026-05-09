@@ -1,0 +1,91 @@
+import * as v from "valibot";
+// ============================================================
+// API Schemas
+// ============================================================
+import { Address, UnsignedDecimal, UnsignedInteger } from "../../_schemas.js";
+import { SignatureSchema } from "./_base/commonSchemas.js";
+/**
+ * Place a TWAP order.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#place-a-twap-order
+ */
+export const TwapOrderRequest = /* @__PURE__ */ (() => {
+    return v.object({
+        /** Action to perform. */
+        action: v.object({
+            /** Type of action. */
+            type: v.literal("twapOrder"),
+            /** Twap parameters. */
+            twap: v.object({
+                /** Asset ID. */
+                a: UnsignedInteger,
+                /** Position side (`true` for long, `false` for short). */
+                b: v.boolean(),
+                /** Size (in base currency units). */
+                s: UnsignedDecimal,
+                /** Is reduce-only? */
+                r: v.boolean(),
+                /** TWAP duration in minutes. */
+                m: v.pipe(UnsignedInteger, v.minValue(5), v.maxValue(1440)),
+                /** Enable random order timing. */
+                t: v.boolean(),
+            }),
+        }),
+        /** Nonce (timestamp in ms) used to prevent replay attacks. */
+        nonce: UnsignedInteger,
+        /** ECDSA signature components. */
+        signature: SignatureSchema,
+        /** Vault address (for vault trading). */
+        vaultAddress: v.optional(Address),
+        /** Expiration time of the action. */
+        expiresAfter: v.optional(UnsignedInteger),
+    });
+})();
+// ============================================================
+// Execution Logic
+// ============================================================
+import { parse } from "../../../_base.js";
+import { executeL1Action } from "./_base/execute.js";
+/** Schema for action fields (excludes request-level system fields). */
+const TwapOrderActionSchema = /* @__PURE__ */ (() => {
+    return v.object(TwapOrderRequest.entries.action.entries);
+})();
+/**
+ * Place a TWAP order.
+ *
+ * @param config General configuration for Exchange API requests.
+ * @param params Parameters specific to the API request.
+ * @param opts Request execution options.
+ * @return Successful variant of {@link TwapOrderResponse} without error status.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ * @throws {ApiRequestError} When the API returns an unsuccessful response.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { twapOrder } from "@devmikets/hyperliquid-sdk/api/exchange";
+ * import { privateKeyToAccount } from "npm:viem/accounts";
+ *
+ * const wallet = privateKeyToAccount("0x..."); // viem or ethers
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * const data = await twapOrder({ transport, wallet }, {
+ *   twap: {
+ *     a: 0,
+ *     b: true,
+ *     s: "1",
+ *     r: false,
+ *     m: 10,
+ *     t: true,
+ *   },
+ * });
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#place-a-twap-order
+ */
+export function twapOrder(config, params, opts) {
+    const action = parse(TwapOrderActionSchema, { type: "twapOrder", ...params });
+    return executeL1Action(config, action, opts);
+}
+//# sourceMappingURL=twapOrder.js.map

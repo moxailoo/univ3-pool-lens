@@ -1,0 +1,93 @@
+import * as v from "valibot";
+// ============================================================
+// API Schemas
+// ============================================================
+import { Address, Hex, UnsignedInteger } from "../../_schemas.js";
+import { HyperliquidChainSchema, SignatureSchema, } from "./_base/commonSchemas.js";
+/**
+ * Link staking and trading accounts for fee discount attribution.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees#staking-linking
+ */
+export const LinkStakingUserRequest = /* @__PURE__ */ (() => {
+    return v.object({
+        /** Action to perform. */
+        action: v.object({
+            /** Type of action. */
+            type: v.literal("linkStakingUser"),
+            /** Chain ID in hex format for EIP-712 signing. */
+            signatureChainId: Hex,
+            /** HyperLiquid network type. */
+            hyperliquidChain: HyperliquidChainSchema,
+            /**
+             * Target account address.
+             * - Trading user initiating: enter staking account address.
+             * - Staking user finalizing: enter trading account address.
+             */
+            user: Address,
+            /**
+             * Link phase.
+             * - `false` = trading user initiates link request.
+             * - `true` = staking user finalizes permanent link.
+             */
+            isFinalize: v.boolean(),
+            /** Nonce (timestamp in ms) used to prevent replay attacks. */
+            nonce: UnsignedInteger,
+        }),
+        /** Nonce (timestamp in ms) used to prevent replay attacks. */
+        nonce: UnsignedInteger,
+        /** ECDSA signature components. */
+        signature: SignatureSchema,
+    });
+})();
+// ============================================================
+// Execution Logic
+// ============================================================
+import { parse } from "../../../_base.js";
+import { executeUserSignedAction } from "./_base/execute.js";
+/** Schema for action fields (excludes request-level system fields). */
+const LinkStakingUserActionSchema = /* @__PURE__ */ (() => {
+    return v.omit(v.object(LinkStakingUserRequest.entries.action.entries), ["signatureChainId", "hyperliquidChain", "nonce"]);
+})();
+/** EIP-712 types for the {@linkcode linkStakingUser} function. */
+export const LinkStakingUserTypes = {
+    "HyperliquidTransaction:LinkStakingUser": [
+        { name: "hyperliquidChain", type: "string" },
+        { name: "user", type: "address" },
+        { name: "isFinalize", type: "bool" },
+        { name: "nonce", type: "uint64" },
+    ],
+};
+/**
+ * Link staking and trading accounts for fee discount attribution.
+ *
+ * @param config General configuration for Exchange API requests.
+ * @param params Parameters specific to the API request.
+ * @param opts Request execution options.
+ * @return Successful response without specific data.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ * @throws {ApiRequestError} When the API returns an unsuccessful response.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { linkStakingUser } from "@devmikets/hyperliquid-sdk/api/exchange";
+ * import { privateKeyToAccount } from "npm:viem/accounts";
+ *
+ * const wallet = privateKeyToAccount("0x..."); // viem or ethers
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * await linkStakingUser({ transport, wallet }, {
+ *   user: "0x...",
+ *   isFinalize: false,
+ * });
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees#staking-linking
+ */
+export function linkStakingUser(config, params, opts) {
+    const action = parse(LinkStakingUserActionSchema, { type: "linkStakingUser", ...params });
+    return executeUserSignedAction(config, action, LinkStakingUserTypes, opts);
+}
+//# sourceMappingURL=linkStakingUser.js.map

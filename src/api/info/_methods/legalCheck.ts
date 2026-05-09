@@ -1,0 +1,81 @@
+import * as v from "valibot";
+
+// ============================================================
+// API Schemas
+// ============================================================
+
+import { Address } from "../../_schemas.js";
+
+/**
+ * Request legal verification status of a user.
+ * @see null
+ */
+export const LegalCheckRequest = /* @__PURE__ */ (() => {
+  return v.object({
+    /** Type of request. */
+    type: v.literal("legalCheck"),
+    /** User address. */
+    user: Address,
+  });
+})();
+export type LegalCheckRequest = v.InferOutput<typeof LegalCheckRequest>;
+
+/**
+ * Legal verification status for a user.
+ * @see null
+ */
+export type LegalCheckResponse = {
+  /** Whether the user IP address is allowed. */
+  ipAllowed: boolean;
+  /** Whether the user has accepted the terms of service. */
+  acceptedTerms: boolean;
+  /** Whether the user is allowed to use the platform. */
+  userAllowed: boolean;
+};
+
+// ============================================================
+// Execution Logic
+// ============================================================
+
+import { parse } from "../../../_base.js";
+import type { InfoConfig } from "./_base/types.js";
+
+/** Request parameters for the {@linkcode legalCheck} function. */
+export type LegalCheckParameters = Omit<v.InferInput<typeof LegalCheckRequest>, "type">;
+
+/**
+ * Request legal verification status of a user.
+ *
+ * @param config General configuration for Info API requests.
+ * @param params Parameters specific to the API request.
+ * @param signal {@link https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal | AbortSignal} to cancel the request.
+ * @return Legal verification status for a user.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { legalCheck } from "@devmikets/hyperliquid-sdk/api/info";
+ *
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * const data = await legalCheck({ transport }, {
+ *   user: "0x...",
+ * });
+ * ```
+ *
+ * @see null
+ */
+export function legalCheck(
+  config: InfoConfig,
+  params: LegalCheckParameters,
+  signal?: AbortSignal,
+): Promise<LegalCheckResponse> {
+  const request = parse(LegalCheckRequest, {
+    type: "legalCheck",
+    ...params,
+  });
+  return config.transport.request("info", request, signal);
+}

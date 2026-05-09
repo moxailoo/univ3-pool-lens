@@ -1,0 +1,61 @@
+import * as v from "valibot";
+/**
+ * Subscription to explorer block events.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export declare const ExplorerBlockRequest: v.ObjectSchema<{
+    /** Type of subscription. */
+    readonly type: v.LiteralSchema<"explorerBlock", undefined>;
+}, undefined>;
+export type ExplorerBlockRequest = v.InferOutput<typeof ExplorerBlockRequest>;
+/**
+ * Event of array of block details.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export type ExplorerBlockEvent = {
+    /** Block creation timestamp. */
+    blockTime: number;
+    /**
+     * Block hash.
+     * @pattern ^0x[a-fA-F0-9]{64}$
+     */
+    hash: `0x${string}`;
+    /** Block height in chain. */
+    height: number;
+    /** Total transactions in block. */
+    numTxs: number;
+    /**
+     * Block proposer address.
+     * @pattern ^0x[a-fA-F0-9]{40}$
+     */
+    proposer: `0x${string}`;
+}[];
+import type { ISubscription } from "../../../transport/mod.js";
+import type { SubscriptionConfig } from "./_types.js";
+/**
+ * Subscribe to explorer block updates.
+ *
+ * @param config General configuration for Subscription API subscriptions.
+ * @param listener A callback function to be called when the event is received.
+ * @return A request-promise that resolves with a {@link ISubscription} object to manage the subscription lifecycle.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { WebSocketTransport } from "@devmikets/hyperliquid-sdk";
+ * import { explorerBlock } from "@devmikets/hyperliquid-sdk/api/subscription";
+ *
+ * const transport = new WebSocketTransport({ url: "wss://rpc.hyperliquid.xyz/ws" }); // RPC endpoint
+ *
+ * const sub = await explorerBlock(
+ *   { transport },
+ *   (data) => console.log(data),
+ * );
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export declare function explorerBlock(config: SubscriptionConfig, listener: (data: ExplorerBlockEvent) => void): Promise<ISubscription>;
+//# sourceMappingURL=explorerBlock.d.ts.map

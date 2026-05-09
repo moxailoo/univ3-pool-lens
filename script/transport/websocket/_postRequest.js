@@ -1,0 +1,245 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WebSocketPostRequest = exports.WebSocketRequestError = void 0;
+const _base_js_1 = require("../_base.js");
+const _polyfills_js_1 = require("../_polyfills.js");
+// ============================================================
+// Error Classes
+// ============================================================
+/** Error thrown when a WebSocket request fails. */
+class WebSocketRequestError extends _base_js_1.TransportError {
+    constructor(message, options) {
+        super(message, options);
+        this.name = "WebSocketRequestError";
+    }
+}
+exports.WebSocketRequestError = WebSocketRequestError;
+// ============================================================
+// Post Request Manager
+// ============================================================
+/**
+ * Manages WebSocket post requests to the Hyperliquid API.
+ * Handles request creation, sending, and mapping responses to their corresponding requests.
+ */
+class WebSocketPostRequest {
+    /** Timeout for requests in ms. Set to `null` to disable. */
+    timeout;
+    _socket;
+    _lastId = 0;
+    _queue = [];
+    /**
+     * Creates a new WebSocket async request handler.
+     *
+     * @param socket WebSocket connection instance for sending requests to the Hyperliquid WebSocket API
+     * @param hlEvents Used to recognize Hyperliquid responses and match them with sent requests
+     * @param timeout Timeout for requests in ms. Set to `null` to disable.
+     */
+    constructor(socket, hlEvents, timeout) {
+        this.timeout = timeout;
+        this._socket = socket;
+        // Monitor responses and match the pending request
+        hlEvents.addEventListener("subscriptionResponse", (event) => {
+            this._queue
+                // NOTE: API may add new fields over time, so perform a loose check of the payload
+                .find((x) => typeof x.id === "string" && isSubset(JSON.parse(x.id), event.detail))
+                ?.resolve(event.detail);
+        });
+        hlEvents.addEventListener("post", (event) => {
+            if (event.detail.response.type === "error") {
+                this._queue
+                    .find((x) => x.id === event.detail.id)
+                    ?.reject(new WebSocketRequestError(event.detail.response.payload));
+                return;
+            }
+            const data = event.detail.response.type === "info"
+                ? event.detail.response.payload.data
+                : event.detail.response.payload;
+            this._queue.find((x) => x.id === event.detail.id)?.resolve(data);
+        });
+        hlEvents.addEventListener("pong", () => {
+            this._queue.find((x) => x.id === "ping")?.resolve();
+        });
+        hlEvents.addEventListener("error", (event) => {
+            try {
+                // For errors with `id=` suffix (e.g., `too many pending post requests id=1234`)
+                const idMatch = event.detail.match(/id=(\d+)$/);
+                if (idMatch) {
+                    const id = parseInt(idMatch[1], 10);
+                    this._queue.find((x) => x.id === id)
+                        ?.reject(new WebSocketRequestError(event.detail));
+                    return;
+                }
+                // Error event doesn't have an id, use original request to match
+                const request = event.detail.match(/{.*}/)?.[0];
+                if (!request)
+                    return;
+                const parsedRequest = JSON.parse(request);
+                // For `post` requests
+                if ("id" in parsedRequest && typeof parsedRequest.id === "number") {
+                    this._queue.find((x) => x.id === parsedRequest.id)
+                        ?.reject(new WebSocketRequestError(event.detail));
+                    return;
+                }
+                // For `subscribe` and `unsubscribe` requests
+                if ("subscription" in parsedRequest &&
+                    typeof parsedRequest.subscription === "object" && parsedRequest.subscription !== null) {
+                    const id = WebSocketPostRequest.requestToId(parsedRequest);
+                    this._queue.find((x) => x.id === id)
+                        ?.reject(new WebSocketRequestError(event.detail));
+                    return;
+                }
+                // For `Already subscribed` and `Invalid subscription` requests
+                if (event.detail.startsWith("Already subscribed") ||
+                    event.detail.startsWith("Invalid subscription")) {
+                    const id = WebSocketPostRequest.requestToId({
+                        method: "subscribe",
+                        subscription: parsedRequest,
+                    });
+                    this._queue.find((x) => x.id === id)
+                        ?.reject(new WebSocketRequestError(event.detail));
+                    return;
+                }
+                // For `Already unsubscribed` requests
+                if (event.detail.startsWith("Already unsubscribed")) {
+                    const id = WebSocketPostRequest.requestToId({
+                        method: "unsubscribe",
+                        subscription: parsedRequest,
+                    });
+                    this._queue.find((x) => x.id === id)
+                        ?.reject(new WebSocketRequestError(event.detail));
+                    return;
+                }
+                // For unknown requests
+                const id = WebSocketPostRequest.requestToId(parsedRequest);
+                this._queue.find((x) => x.id === id)
+                    ?.reject(new WebSocketRequestError(event.detail));
+            }
+            catch {
+                // Ignore JSON parsing errors
+            }
+        });
+        // Throws all pending requests if the connection is dropped
+        const handleClose = () => {
+            this._queue.forEach(({ reject }) => {
+                reject(new WebSocketRequestError("WebSocket connection closed"));
+            });
+            this._queue = [];
+        };
+        socket.addEventListener("close", handleClose);
+        socket.addEventListener("error", handleClose);
+    }
+    async request(method, payloadOrSignal, maybeSignal) {
+        try {
+            const payload = payloadOrSignal instanceof AbortSignal ? undefined : payloadOrSignal;
+            const userSignal = payloadOrSignal instanceof AbortSignal ? payloadOrSignal : maybeSignal;
+            const timeoutSignal = this.timeout ? _polyfills_js_1.AbortSignal_.timeout(this.timeout) : undefined;
+            const signal = userSignal && timeoutSignal
+                ? _polyfills_js_1.AbortSignal_.any([userSignal, timeoutSignal])
+                : userSignal ?? timeoutSignal;
+            // Reject the request if the signal is aborted
+            if (signal?.aborted)
+                return Promise.reject(signal.reason);
+            // Or if the WebSocket connection is permanently closed
+            if (this._socket.terminationSignal.aborted) {
+                return Promise.reject(this._socket.terminationSignal.reason);
+            }
+            // Create a request
+            let id;
+            let request;
+            if (method === "post") {
+                id = ++this._lastId;
+                request = { method, id, request: payload };
+            }
+            else if (method === "ping") {
+                id = "ping";
+                request = { method };
+            }
+            else {
+                request = { method, subscription: payload };
+                id = WebSocketPostRequest.requestToId(request);
+            }
+            // Send the request
+            this._socket.send(JSON.stringify(request));
+            // Wait for a response
+            const { promise, resolve, reject } = _polyfills_js_1.Promise_.withResolvers();
+            this._queue.push({ id, resolve, reject });
+            const onAbort = () => reject(signal?.reason);
+            signal?.addEventListener("abort", onAbort, { once: true });
+            return await promise.finally(() => {
+                const index = this._queue.findIndex((item) => item.id === id);
+                if (index !== -1)
+                    this._queue.splice(index, 1);
+                signal?.removeEventListener("abort", onAbort);
+            });
+        }
+        catch (error) {
+            if (error instanceof _base_js_1.TransportError)
+                throw error; // Re-throw known errors
+            throw new WebSocketRequestError(`Unknown error while making a WebSocket request: ${error}`, { cause: error });
+        }
+    }
+    /** Normalizes an object and then converts it to a string. */
+    static requestToId(value) {
+        const sortedKeys = recursiveSortObjectKeys(value);
+        const lowercasedHex = recursiveHexToLowercase(sortedKeys);
+        return JSON.stringify(lowercasedHex);
+    }
+}
+exports.WebSocketPostRequest = WebSocketPostRequest;
+// ============================================================
+// Helpers
+// ============================================================
+function recursiveSortObjectKeys(obj) {
+    if (Array.isArray(obj)) {
+        return obj.map(recursiveSortObjectKeys);
+    }
+    if (typeof obj === "object" && obj !== null) {
+        const result = {};
+        for (const key of Object.keys(obj).sort()) {
+            result[key] = recursiveSortObjectKeys(obj[key]);
+        }
+        return result;
+    }
+    return obj;
+}
+function recursiveHexToLowercase(value) {
+    if (typeof value === "string" && /^0[xX][0-9a-fA-F]+$/.test(value)) {
+        return value.toLowerCase();
+    }
+    if (Array.isArray(value)) {
+        return value.map(recursiveHexToLowercase);
+    }
+    if (typeof value === "object" && value !== null) {
+        const result = {};
+        for (const key in value) {
+            result[key] = recursiveHexToLowercase(value[key]);
+        }
+        return result;
+    }
+    return value;
+}
+/** Checks if `subset` is a subset of `superset` (all fields in subset exist in superset with same values). */
+function isSubset(subset, superset) {
+    // Strings: compare hex addresses case-insensitively, others strictly
+    if (typeof subset === "string" && typeof superset === "string") {
+        const hexRegex = /^0x[0-9a-f]+$/i;
+        return hexRegex.test(subset) && hexRegex.test(superset)
+            ? subset.toLowerCase() === superset.toLowerCase()
+            : subset === superset;
+    }
+    // Primitives or type mismatch
+    if (typeof subset !== "object" || typeof superset !== "object" || subset === null || superset === null) {
+        return subset === superset;
+    }
+    // Arrays: must match element by element
+    if (Array.isArray(subset)) {
+        return Array.isArray(superset) &&
+            subset.length === superset.length &&
+            subset.every((item, i) => isSubset(item, superset[i]));
+    }
+    // Objects: all keys in subset must exist in superset with matching values
+    const sub = subset;
+    const sup = superset;
+    return Object.keys(sub).every((key) => key in sup && isSubset(sub[key], sup[key]));
+}
+//# sourceMappingURL=_postRequest.js.map

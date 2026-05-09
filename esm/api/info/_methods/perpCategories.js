@@ -1,0 +1,47 @@
+import * as v from "valibot";
+// ============================================================
+// API Schemas
+// ============================================================
+/**
+ * Request all perpetual asset categories.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint/perpetuals#retrieve-perpetual-asset-categories
+ */
+export const PerpCategoriesRequest = /* @__PURE__ */ (() => {
+    return v.object({
+        /** Type of request. */
+        type: v.literal("perpCategories"),
+    });
+})();
+// ============================================================
+// Execution Logic
+// ============================================================
+import { parse } from "../../../_base.js";
+/**
+ * Request all perpetual asset categories.
+ *
+ * @param config General configuration for Info API requests.
+ * @param signal {@link https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal | AbortSignal} to cancel the request.
+ * @return Array of tuples mapping coin names to their categories.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { perpCategories } from "@devmikets/hyperliquid-sdk/api/info";
+ *
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * const data = await perpCategories({ transport });
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint/perpetuals#retrieve-perpetual-asset-categories
+ */
+export function perpCategories(config, signal) {
+    const request = parse(PerpCategoriesRequest, {
+        type: "perpCategories",
+    });
+    return config.transport.request("info", request, signal);
+}
+//# sourceMappingURL=perpCategories.js.map

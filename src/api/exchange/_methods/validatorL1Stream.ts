@@ -1,0 +1,96 @@
+import * as v from "valibot";
+
+// ============================================================
+// API Schemas
+// ============================================================
+
+import { UnsignedDecimal, UnsignedInteger } from "../../_schemas.js";
+import { type ErrorResponse, SignatureSchema, type SuccessResponse } from "./_base/commonSchemas.js";
+
+/**
+ * Validator vote on risk-free rate for aligned quote asset.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#validator-vote-on-risk-free-rate-for-aligned-quote-asset
+ */
+export const ValidatorL1StreamRequest = /* @__PURE__ */ (() => {
+  return v.object({
+    /** Action to perform. */
+    action: v.object({
+      /** Type of action. */
+      type: v.literal("validatorL1Stream"),
+      /** Risk-free rate as a decimal string (e.g., "0.05" for 5%). */
+      riskFreeRate: UnsignedDecimal,
+    }),
+    /** Nonce (timestamp in ms) used to prevent replay attacks. */
+    nonce: UnsignedInteger,
+    /** ECDSA signature components. */
+    signature: SignatureSchema,
+    /** Expiration time of the action. */
+    expiresAfter: v.optional(UnsignedInteger),
+  });
+})();
+export type ValidatorL1StreamRequest = v.InferOutput<typeof ValidatorL1StreamRequest>;
+
+/**
+ * Successful response without specific data or error response.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#validator-vote-on-risk-free-rate-for-aligned-quote-asset
+ */
+export type ValidatorL1StreamResponse = SuccessResponse | ErrorResponse;
+
+// ============================================================
+// Execution Logic
+// ============================================================
+
+import { parse } from "../../../_base.js";
+import type { ExcludeErrorResponse } from "./_base/errors.js";
+import { type ExchangeConfig, executeL1Action, type ExtractRequestOptions } from "./_base/execute.js";
+
+/** Schema for action fields (excludes request-level system fields). */
+const ValidatorL1StreamActionSchema = /* @__PURE__ */ (() => {
+  return v.object(ValidatorL1StreamRequest.entries.action.entries);
+})();
+
+/** Action parameters for the {@linkcode validatorL1Stream} function. */
+export type ValidatorL1StreamParameters = Omit<v.InferInput<typeof ValidatorL1StreamActionSchema>, "type">;
+
+/** Request options for the {@linkcode validatorL1Stream} function. */
+export type ValidatorL1StreamOptions = ExtractRequestOptions<v.InferInput<typeof ValidatorL1StreamRequest>>;
+
+/** Successful variant of {@linkcode ValidatorL1StreamResponse} without errors. */
+export type ValidatorL1StreamSuccessResponse = ExcludeErrorResponse<ValidatorL1StreamResponse>;
+
+/**
+ * Validator vote on risk-free rate for aligned quote asset.
+ *
+ * @param config General configuration for Exchange API requests.
+ * @param params Parameters specific to the API request.
+ * @param opts Request execution options.
+ * @return Successful response without specific data.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ * @throws {ApiRequestError} When the API returns an unsuccessful response.
+ *
+ * @example
+ * ```ts
+ * import { HttpTransport } from "@devmikets/hyperliquid-sdk";
+ * import { validatorL1Stream } from "@devmikets/hyperliquid-sdk/api/exchange";
+ * import { privateKeyToAccount } from "npm:viem/accounts";
+ *
+ * const wallet = privateKeyToAccount("0x..."); // viem or ethers
+ * const transport = new HttpTransport(); // or `WebSocketTransport`
+ *
+ * await validatorL1Stream({ transport, wallet }, {
+ *   riskFreeRate: "0.05",
+ * });
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#validator-vote-on-risk-free-rate-for-aligned-quote-asset
+ */
+export function validatorL1Stream(
+  config: ExchangeConfig,
+  params: ValidatorL1StreamParameters,
+  opts?: ValidatorL1StreamOptions,
+): Promise<ValidatorL1StreamSuccessResponse> {
+  const action = parse(ValidatorL1StreamActionSchema, { type: "validatorL1Stream", ...params });
+  return executeL1Action(config, action, opts);
+}

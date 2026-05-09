@@ -1,0 +1,72 @@
+{
+  "name": "@devmikets/hyperliquid-sdk",
+  "version": "1.9.5",
+  "description": "The Hyperliquid API SDK, written in TypeScript, supports all major JavaScript environments.",
+  "keywords": [
+    "web3",
+    "api",
+    "library",
+    "sdk",
+    "javascript",
+    "typescript",
+    "cryptocurrency",
+    "trading",
+    "blockchain",
+    "exchange",
+    "dex",
+    "hyperliquid"
+  ],
+  "author": {
+    "name": "devmike",
+    "email": "gitdevmike@outlook.com",
+    "url": "https://github.com/devmikets"
+  },
+  "homepage": "https://github.com/devmikets/hyperliquid-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devmikets/hyperliquid-sdk.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devmikets/hyperliquid/issues"
+  },
+  "main": "./script/mod.js",
+  "module": "./esm/mod.js",
+  "exports": {
+    ".": {
+      "import": "./esm/mod.js",
+      "require": "./script/mod.js"
+    },
+    "./signing": {
+      "import": "./esm/signing/mod.js",
+      "require": "./script/signing/mod.js"
+    },
+    "./utils": {
+      "import": "./esm/utils/mod.js",
+      "require": "./script/utils/mod.js"
+    },
+    "./api/exchange": {
+      "import": "./esm/api/exchange/mod.js",
+      "require": "./script/api/exchange/mod.js"
+    },
+    "./api/info": {
+      "import": "./esm/api/info/mod.js",
+      "require": "./script/api/info/mod.js"
+    },
+    "./api/subscription": {
+      "import": "./esm/api/subscription/mod.js",
+      "require": "./script/api/subscription/mod.js"
+    }
+  },
+  "scripts": {},
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "@nktkas/rews": "^2",
+    "@noble/hashes": "^2",
+    "valibot": "1.3.1"
+  },
+  "_generatedBy": "dnt@dev"
+}

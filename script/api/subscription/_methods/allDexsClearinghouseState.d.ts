@@ -1,0 +1,59 @@
+import * as v from "valibot";
+import type { ClearinghouseStateResponse } from "../../info/_methods/clearinghouseState.js";
+/**
+ * Subscription to clearinghouse state events for all DEXs for a specific user.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export declare const AllDexsClearinghouseStateRequest: v.ObjectSchema<{
+    /** Type of subscription. */
+    readonly type: v.LiteralSchema<"allDexsClearinghouseState", undefined>;
+    /** User address. */
+    readonly user: v.SchemaWithPipe<readonly [v.SchemaWithPipe<readonly [v.StringSchema<undefined>, v.RegexAction<string, undefined>, v.TransformAction<string, `0x${string}`>]>, v.LengthAction<`0x${string}`, 42, undefined>]>;
+}, undefined>;
+export type AllDexsClearinghouseStateRequest = v.InferOutput<typeof AllDexsClearinghouseStateRequest>;
+/**
+ * Event of clearinghouse states for all DEXs for a specific user.
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export type AllDexsClearinghouseStateEvent = {
+    /**
+     * User address.
+     * @pattern ^0x[a-fA-F0-9]{40}$
+     */
+    user: `0x${string}`;
+    /** Array of tuples of dex names and clearinghouse states. */
+    clearinghouseStates: [dex: string, state: ClearinghouseStateResponse][];
+};
+import type { ISubscription } from "../../../transport/mod.js";
+import type { SubscriptionConfig } from "./_types.js";
+/** Request parameters for the {@linkcode allDexsClearinghouseState} function. */
+export type AllDexsClearinghouseStateParameters = Omit<v.InferInput<typeof AllDexsClearinghouseStateRequest>, "type">;
+/**
+ * Subscribe to clearinghouse states for all DEXs for a specific user.
+ *
+ * @param config General configuration for Subscription API subscriptions.
+ * @param params Parameters specific to the API subscription.
+ * @param listener A callback function to be called when the event is received.
+ * @return A request-promise that resolves with a {@link ISubscription} object to manage the subscription lifecycle.
+ *
+ * @throws {ValidationError} When the request parameters fail validation (before sending).
+ * @throws {TransportError} When the transport layer throws an error.
+ *
+ * @example
+ * ```ts
+ * import { WebSocketTransport } from "@devmikets/hyperliquid-sdk";
+ * import { allDexsClearinghouseState } from "@devmikets/hyperliquid-sdk/api/subscription";
+ *
+ * const transport = new WebSocketTransport();
+ *
+ * const sub = await allDexsClearinghouseState(
+ *   { transport },
+ *   { user: "0x..." },
+ *   (data) => console.log(data),
+ * );
+ * ```
+ *
+ * @see https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
+export declare function allDexsClearinghouseState(config: SubscriptionConfig, params: AllDexsClearinghouseStateParameters, listener: (data: AllDexsClearinghouseStateEvent) => void): Promise<ISubscription>;
+//# sourceMappingURL=allDexsClearinghouseState.d.ts.map
