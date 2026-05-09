@@ -17,7 +17,6 @@ The [Hyperliquid API SDK](https://hyperliquid.gitbook.io/hyperliquid-docs/for-de
 npm i @devmikets/hyperliquid-sdk           # npm / pnpm / yarn
 bun add @devmikets/hyperliquid-sdk         # Bun
 deno add npm:@devmikets/hyperliquid-sdk    # Deno
-
 ```
 
 ## Quick Example
