@@ -143,4 +143,4 @@ await exchange.withdraw3({ destination: "0x...", amount: "1" });
 
 Full guides, examples, and API reference: [hyperliquid-sdk docs](https://devmike.gitbook.io/hyperliquid-sdk)
 
-- For beginners, you can use tools like ChatGPT/Claude to get started quickly!
+- For beginners, you can use tools like ChatGPT/Claude to get started quickly.
