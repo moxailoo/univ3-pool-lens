@@ -12,4 +12,4 @@ export declare class ValidationError extends HyperliquidError {
 }
 /** Wrapper around `v.parse` that throws {@linkcode ValidationError} instead of `ValiError`. */
 export declare function parse<const TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(schema: TSchema, input: unknown): v.InferOutput<TSchema>;
-//# sourceMappingURL=_base.d.ts.map
+//# sourceMappingURL=_base.d.ts.map 
